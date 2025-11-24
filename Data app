@@ -1,0 +1,35 @@
+/**
+Usage:
+* 1. Start your React app (e.g., on localhost:3000).
+* 2. Create a route/view for an invoice (e.g., /invoice/:id) that renders a printable invoice for a
+given ID.
+* 3. Save invoice data in invoices.json (array of invoice objects with at least { id }).
+* 4. Run this script with: node generate-invoices-pdf.js
+*/
+const puppeteer = require('puppeteer');
+const path = require('path');
+const fs = require('fs');
+const invoices = require('./invoices.json'); // Array of invoice objects [{ id: "INV-1001", ... }]
+// You may need to tweak the URL format depending on your React router setup.
+const INVOICE_URL = id => `http://localhost:3000/invoice/${id}`;
+const OUTPUT_DIR = path.join(__dirname, 'pdfs');
+(async () => {
+if (!fs.existsSync(OUTPUT_DIR)) {
+fs.mkdirSync(OUTPUT_DIR);
+}
+const browser = await puppeteer.launch();
+const page = await browser.newPage();
+for (let i = 0; i < invoices.length; i++) {
+const invoice = invoices[i];
+const url = INVOICE_URL(invoice.id);
+console.log(`Generating PDF for ${invoice.id}...`);
+await page.goto(url, { waitUntil: 'networkidle0' });
+await page.pdf({
+path: path.join(OUTPUT_DIR, `${invoice.id}.pdf`),
+format: 'A4',
+printBackground: true, // Helps preserve print styles!
+margin: { top: '20mm', bottom: '20mm', left: '10mm', right: '10mm' }
+});
+}
+await browser.close();
+console.log('PDF generation complete!');})();
